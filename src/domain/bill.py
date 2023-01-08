@@ -43,26 +43,72 @@ class Bill:
 
 
 class UnitBill:
-    def __init__(self, id: uuid4, ref: uuid4, value: float, due_date: date):
+    def __init__(self, value: float, due_date: date, id: uuid4 = None, ref: uuid4 = None):
         self.id = id
         self.ref = ref
         self.value = value
         self.due_date = due_date
-        self.paid = False
-        self.type = BillTypes.UNIT.value
+        self._paid = False
+        self.type = BillTypes.UNIT
 
-    def get_total_amount_due(self):
-        if not self.paid:
+    @property
+    def paid(self):
+        return self._paid
+    
+    @paid.setter
+    def paid(self, paid):
+        self._paid = paid
+    
+    def get_total_amount_due(self) -> float:
+        if not self._paid:
             return self.value
         return 0
     
-    def get_monthly_amount_due(self):
-        # TODO: adicionar a validação do ano tbm, pois a atual regra está quebrada.
-        if not self.paid and self.due_date.month <= date.today().month:
+    def get_monthly_amount_due(self) -> float:
+        if not self._paid and self.due_date.month == date.today().month and self.due_date.year == date.today().year:
             return self.value
         return 0
 
-    def is_bill_paid(self):
-        if self.paid:
-            return True
-        return False
+    def is_bill_paid(self) -> bool:
+        return self.paid
+
+
+class InstallmentBill:
+    def __init__(self, id: uuid4 = None, ref: uuid4 = None) -> None:
+        self.id = id
+        self.ref = ref
+        self._paid = False
+        self.type = BillTypes.INSTALLMENT
+        self.installments = set()
+
+    def get_total_amount_due(self) -> float:
+        unpaid_values = [i.value for i in self.installments if not i.paid]
+        return sum(unpaid_values)
+    
+    def get_monthly_amount_due(self) -> float:
+        ...
+    
+    def is_bill_paid(self) -> bool:
+        ...
+    
+    def set_installment_as_paid(self, ref: uuid4):
+        installment = next(i for i in self.installments if i.ref == ref)
+        if not installment.paid:
+            installment.paid = True
+
+
+class Installment:
+    def __init__(self, value: float, due_date: date, id: uuid4 = None, ref: uuid4 = None):
+        self.id = id
+        self.ref = ref
+        self._paid = False
+        self.due_date = due_date
+        self.value = value
+
+    @property
+    def paid(self):
+        return self._paid
+    
+    @paid.setter
+    def paid(self, paid):
+        self._paid = paid
